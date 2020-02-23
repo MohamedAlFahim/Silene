@@ -19,43 +19,47 @@ Each token object produced by the generated lexer contains:
 ## Getting Started
 
 ```python
-from silene.lexer import Lexer
+from silene.analyzer import Analyzer
+from silene.codegenerators.python_generator import generate_python_code
 
 
 # The possible states are 0 and 1
-lexer = Lexer('cool language', num_of_states=2)
+lexer = Analyzer(num_of_states=2)
 
 # if the from state is the same as the to state, it loops back
 
 # if character is space or tab
-lexer.add_transition(from=0, to=0, if_char=[' ', '\t'])
+lexer.add_transition(from_st=0, to_st=0, if_char=[' ', '\t'])
 # if character is +
 # the action is begin token then append character then emit PLUS token
-lexer.add_transition(from=0, to=0, if_char='+', action=['B', 'A', 'E:PLUS'])
+lexer.add_transition(from_st=0, to_st=0, if_char='+', actions=['B', 'A', 'E:PLUS'])
 # if character is a digit inclusive between 0 and 9
 # the action is begin token then append character
-lexer.add_transition(from=0, to=1, if_char='0-9', action=['B', 'A'])
+lexer.add_transition(from_st=0, to_st=1, if_char='0-9', actions=['B', 'A'])
 # if character is a digit inclusive between 0 and 9
 # the action is append character
-lexer.add_transition(from=1, to=1, if_char='0-9', action='A')
+lexer.add_transition(from_st=1, to_st=1, if_char='0-9', actions=['A'])
 # if character is not a digit inclusive between 0 and 9
 # the action is emit NUM token then feed the character to the next state (0)
-lexer.add_transition(from=1, to=0, if_char='else', action=['E:NUM', 'F'])
+lexer.add_transition(from_st=1, to_st=0, if_char='else', actions=['E:NUM', 'F'])
 
-print(lexer.generate_code('python'))
+print(generate_python_code(lexer))
 ```
 
 ## If Character Syntax
 
-* `'!'` : if !
-* `'!c'` : if not c
-* `'!0-9'` : if not a digit inclusive between 0 and 9
+* `'!'` : if character is !
+* `'!c'` : if character is not c
+* `'!0-9'` : if character is not a digit inclusive between 0 and 9
 * `'else'` : if none of the other conditions are true
-* `['0-9', 'A-Z']` : if a digit inclusive between 0 and 9, or a capital letter inclusive between A and Z
+* `['0-9', 'A-Z']` : if character is a digit inclusive between 0 and 9, or a capital letter inclusive between A and Z
+* `('0-9', 'A-Z')` : if character is neither a digit inclusive between 0 and 9, nor a capital letter inclusive between A and Z
+* `'else'` : if the conditions for all other transitions with the same `from_st` state are false
 
 ## Actions
 
 - **Append (A):** Appends the character to the token text.
 - **Begin (B):** Marks the beginning of a token in general to be the current column number, line number, and position.
 - **Emit (E:TYPE):** Marks the end of a token in general to be the current column number, line number, and position. In addition, emits a token of the specified type.
-- **Feed (F):** Feeds the character to the `to` state.
+- **Feed (F):** Feeds the character to the `to_st` state.
+- **Raise error (R:MESSAGE):** Raise a lexer error with the message `MESSAGE`.
