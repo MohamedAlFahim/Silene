@@ -1,6 +1,3 @@
-import sys
-sys.path.append('.')
-
 from silene.analyzer import Analyzer
 
 # The possible states are 0 and 1
