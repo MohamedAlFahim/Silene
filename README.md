@@ -1,5 +1,7 @@
 # Silene
 
+![Python 3.8](https://img.shields.io/badge/python-3.8-blue.svg)
+
 ---
 
 **This project is incomplete. Do not use in production.**
@@ -18,7 +20,7 @@ Each token object produced by the generated lexer contains:
 
 ## Getting Started
 
-```python
+```py
 from silene.analyzer import Analyzer
 from silene.codegenerators.python_generator import generate_python_code
 
