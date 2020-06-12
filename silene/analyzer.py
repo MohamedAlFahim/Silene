@@ -22,39 +22,35 @@ class IfCharLogic:
     pass
 
 
-class NotRule(IfCharLogic):
+class NotRule(IfCharLogic, typing.NamedTuple):
     # i.e. '!A-Z'
-    def __init__(self, rule: IfCharLogic):
-        pass
+    rule: IfCharLogic
 
 
-class NeitherRule(IfCharLogic):
-    # (a, b, c) translates to not (a or b or c)
-    def __init__(self, values: list):
-        self.values = values
-
-
-class OrRule(IfCharLogic):
+class OrRule(IfCharLogic, typing.NamedTuple):
     # [a, b, c] translates to a or b or c
-    def __init__(self, values: list):
-        self.values = values
+    values: typing.List[IfCharLogic]
 
 
-class CharacterRangeRule(IfCharLogic):
+class CharacterRangeRule(IfCharLogic, typing.NamedTuple):
     # i.e. A-Z has start_char A and end_char Z
-    def __init__(self, start_char: str, end_char: str):
-        self.start_char = start_char
-        self.end_char = end_char
+    start_char: str
+    end_char: str
 
 
-class SpecificCharacterRule(IfCharLogic):
-    def __init__(self, char: str):
-        self.char = char
+class SpecificCharacterRule(IfCharLogic, typing.NamedTuple):
+    char: str
 
 
 class ElseRule(IfCharLogic):
     def __init__(self):
         pass
+
+
+# noinspection PyPep8Naming
+def NeitherRule(values: typing.List[IfCharLogic]):
+    # (a, b, c) translates to not (a or b or c)
+    return NotRule(rule=OrRule(values=values))
 
 
 class Transition(typing.NamedTuple):
