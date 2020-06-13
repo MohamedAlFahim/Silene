@@ -1,7 +1,5 @@
 from enum import Enum, auto
 
-import re
-import string
 import typing
 
 
@@ -27,18 +25,18 @@ class ConditionRule:
 
 class NotRule(ConditionRule, typing.NamedTuple):
     # i.e. '!A-Z'
-    rule: ConditionRule
+    sub_rule: ConditionRule
 
     def __repr__(self):
-        return f'!{self.rule}'
+        return f'!{self.sub_rule}'
 
 
 class OrRule(ConditionRule, typing.NamedTuple):
     # [a, b, c] translates to a or b or c
-    values: typing.List[ConditionRule]
+    sub_rules: typing.List[ConditionRule]
 
     def __repr__(self):
-        return f'( {" | ".join([each_value.__repr__() for each_value in self.values])} )'
+        return f'( {" | ".join([repr(each_value) for each_value in self.sub_rules])} )'
 
 
 class CharacterRangeRule(ConditionRule, typing.NamedTuple):
@@ -71,9 +69,9 @@ class ElseRule(ConditionRule):
 
 
 # noinspection PyPep8Naming
-def NeitherRule(values: typing.List[ConditionRule]):
+def NeitherRule(sub_rules: typing.List[ConditionRule]):
     # (a, b, c) translates to not (a or b or c)
-    return NotRule(rule=OrRule(values=values))
+    return NotRule(sub_rule=OrRule(sub_rules=sub_rules))
 
 
 class Transition(typing.NamedTuple):
@@ -124,29 +122,29 @@ def handle_character_range_syntax(text: str):
 
 def handle_exclamation_syntax(text: str):
     without_exclamation = text[1:]
-    return NotRule(rule=(handle_specific_character_syntax(without_exclamation) if
-                         is_specific_character_syntax(without_exclamation) else
-                         handle_character_range_syntax(without_exclamation)))
+    return NotRule(sub_rule=(handle_specific_character_syntax(without_exclamation) if
+                             is_specific_character_syntax(without_exclamation) else
+                             handle_character_range_syntax(without_exclamation)))
 
 
-def handle_or_syntax(values: typing.List[str]):
-    or_values = []
-    for each_value in values:
-        if is_specific_character_syntax(each_value):
-            or_values.append(handle_specific_character_syntax(each_value))
-        elif is_character_range_syntax(each_value):
-            or_values.append(handle_character_range_syntax(each_value))
-        elif is_exclamation_syntax(each_value):
-            or_values.append(handle_exclamation_syntax(each_value))
+def handle_or_syntax(items: typing.List[str]):
+    sub_rules = []
+    for each_item in items:
+        if is_specific_character_syntax(each_item):
+            sub_rules.append(handle_specific_character_syntax(each_item))
+        elif is_character_range_syntax(each_item):
+            sub_rules.append(handle_character_range_syntax(each_item))
+        elif is_exclamation_syntax(each_item):
+            sub_rules.append(handle_exclamation_syntax(each_item))
         else:
-            raise ValueError(f'The condition {each_value} is invalid in the context of an OrRule')
-    return OrRule(values=or_values)
+            raise ValueError(f'The condition {repr(each_item)} is invalid in the context of an OrRule')
+    return OrRule(sub_rules=sub_rules)
 
 
-def handle_neither_syntax(values: typing.List[str]):
-    return NeitherRule(values=[(handle_specific_character_syntax(each_value) if
-                                is_specific_character_syntax(each_value) else
-                                handle_character_range_syntax(each_value)) for each_value in values])
+def handle_neither_syntax(items: typing.List[str]):
+    return NeitherRule(sub_rules=[(handle_specific_character_syntax(each_item) if
+                                   is_specific_character_syntax(each_item) else
+                                   handle_character_range_syntax(each_item)) for each_item in items])
 
 
 class Analyzer:
@@ -202,7 +200,7 @@ class Analyzer:
             elif each_action.startswith('R:'):
                 transition_actions.append(Action(ActionType.RAISE, each_action[2:]))
             else:
-                raise ValueError(f'The action {each_action} is invalid')
+                raise ValueError(f'The action {repr(each_action)} is invalid')
 
         transition_condition: ConditionRule
         if condition == 'else':
@@ -218,7 +216,7 @@ class Analyzer:
         elif is_neither_syntax(condition):
             transition_condition = handle_neither_syntax(condition)
         else:
-            raise ValueError(f'The condition {condition} is invalid')
+            raise ValueError(f'The condition {repr(condition)} is invalid')
 
         self.transitions[from_st].append(Transition(condition=transition_condition, actions=transition_actions,
                                                     to_st=to_st))

@@ -14,6 +14,7 @@ lexer.add_transition(from_st=0, to_st=0, condition='+',
 # if character is a digit inclusive between 0 and 9
 # the action is begin token then append character
 lexer.add_transition(from_st=0, to_st=1, condition='0-9', actions=['B', 'A'])
+
 # if character is a digit inclusive between 0 and 9
 # the action is append character
 lexer.add_transition(from_st=1, to_st=1, condition='0-9', actions=['A'])
@@ -22,7 +23,7 @@ lexer.add_transition(from_st=1, to_st=1, condition='0-9', actions=['A'])
 lexer.add_transition(from_st=1, to_st=0, condition='else',
                      actions=['E:NUM', 'F'])
 
-for i, each_transition_set in enumerate(lexer.transitions):
+for i, each_transition_list in enumerate(lexer.transitions):
     print(f'From state {i}:')
-    for each_transition in each_transition_set:
+    for each_transition in each_transition_list:
         print(each_transition)
