@@ -18,43 +18,43 @@ class Action(typing.NamedTuple):
     argument: str = ''
 
 
-class IfCharLogic:
+class ConditionRule:
     pass
 
 
-class NotRule(IfCharLogic, typing.NamedTuple):
+class NotRule(ConditionRule, typing.NamedTuple):
     # i.e. '!A-Z'
-    rule: IfCharLogic
+    rule: ConditionRule
 
 
-class OrRule(IfCharLogic, typing.NamedTuple):
+class OrRule(ConditionRule, typing.NamedTuple):
     # [a, b, c] translates to a or b or c
-    values: typing.List[IfCharLogic]
+    values: typing.List[ConditionRule]
 
 
-class CharacterRangeRule(IfCharLogic, typing.NamedTuple):
-    # i.e. A-Z has start_char A and end_char Z
+class CharacterRangeRule(ConditionRule, typing.NamedTuple):
+    # i.e. 'A-Z' has start_char 'A' and end_char 'Z'
     start_char: str
     end_char: str
 
 
-class SpecificCharacterRule(IfCharLogic, typing.NamedTuple):
+class SpecificCharacterRule(ConditionRule, typing.NamedTuple):
     char: str
 
 
-class ElseRule(IfCharLogic):
+class ElseRule(ConditionRule):
     def __init__(self):
         pass
 
 
 # noinspection PyPep8Naming
-def NeitherRule(values: typing.List[IfCharLogic]):
+def NeitherRule(values: typing.List[ConditionRule]):
     # (a, b, c) translates to not (a or b or c)
     return NotRule(rule=OrRule(values=values))
 
 
 class Transition(typing.NamedTuple):
-    if_char_logic: IfCharLogic
+    if_char_logic: ConditionRule
     actions: typing.List[Action]
     to_st: int
 
@@ -62,19 +62,27 @@ class Transition(typing.NamedTuple):
 # SYNTAX DETECTORS
 
 
-def is_specific_character_syntax(text: str):
+def is_specific_character_syntax(syntax):
     # i.e. 'c'
-    return isinstance(text, str) and (len(text) == 1)
+    return isinstance(syntax, str) and (len(syntax) == 1)
 
 
-def is_character_range_syntax(text: str):
+def is_character_range_syntax(syntax):
     # i.e. 'a-z' and '0-9'
-    return isinstance(text, str) and (len(text) == 3) and (text[1] == '-')
+    return isinstance(syntax, str) and (len(syntax) == 3) and (syntax[1] == '-')
 
 
-def is_exclamation_syntax(text: str):
+def is_exclamation_syntax(syntax):
     # i.e. '!c' and '!0-9'
-    return isinstance(text, str) and (len(text) > 1) and text.startswith('!')
+    return isinstance(syntax, str) and (len(syntax) > 1) and syntax.startswith('!')
+
+
+def is_or_syntax(syntax):
+    return isinstance(syntax, list) and (len(syntax) > 1)
+
+
+def is_neither_syntax(syntax):
+    return isinstance(syntax, tuple) and (len(syntax) > 1)
 
 
 # SYNTAX HANDLERS
@@ -95,6 +103,26 @@ def handle_exclamation_syntax(text: str):
                          handle_character_range_syntax(without_exclamation)))
 
 
+def handle_or_syntax(values: typing.List[str]):
+    or_values = []
+    for each_value in values:
+        if is_specific_character_syntax(each_value):
+            or_values.append(handle_specific_character_syntax(each_value))
+        elif is_character_range_syntax(each_value):
+            or_values.append(handle_character_range_syntax(each_value))
+        elif is_exclamation_syntax(each_value):
+            or_values.append(handle_exclamation_syntax(each_value))
+        else:
+            raise ValueError(f'The condition {each_value} is invalid in the context of an OrRule')
+    return OrRule(values=or_values)
+
+
+def handle_neither_syntax(values: typing.List[str]):
+    return NeitherRule(values=[(handle_specific_character_syntax(each_value) if
+                                is_specific_character_syntax(each_value) else
+                                handle_character_range_syntax(each_value)) for each_value in values])
+
+
 class Analyzer:
     """
     Stores transition logic. Calling a code-generating function on it will generate the code necessary for a lexer.
@@ -113,7 +141,7 @@ class Analyzer:
         self.transitions = [[] for _ in range(num_of_states)]
 
     def add_transition(self, *, from_st: int, to_st: int,
-                       if_char: typing.Union[str, typing.Tuple[str], typing.List[str]],
+                       condition: typing.Union[str, typing.Tuple[str], typing.List[str]],
                        actions: typing.Optional[typing.List[str]] = None) -> None:
         """
         Adds a transition from one state to either another state or the same state. The transition occurs if the
@@ -121,7 +149,7 @@ class Analyzer:
 
         :param from_st: The starting state of the transition.
         :param to_st: The ending state of the transition.
-        :param if_char: The condition that must be satisfied.
+        :param condition: The condition that must be satisfied.
         :param actions: The set of actions to take.
         """
         actions: typing.List[str] = actions or []
@@ -149,15 +177,19 @@ class Analyzer:
                 action_list.append(Action(ActionType.RAISE, each_action[2:]))
             else:
                 raise ValueError(f'The action {each_action} is invalid')
-        if_char_logic: IfCharLogic
-        if if_char == 'else':
+
+        if_char_logic: ConditionRule
+        if condition == 'else':
             if_char_logic = ElseRule()
-        elif is_specific_character_syntax(if_char):
-            if_char_logic = handle_specific_character_syntax(if_char)
-        elif is_character_range_syntax(if_char):
-            if_char_logic = handle_character_range_syntax(if_char)
-        elif is_exclamation_syntax(if_char):
-            if_char_logic = handle_exclamation_syntax(if_char)
+        elif is_specific_character_syntax(condition):
+            if_char_logic = handle_specific_character_syntax(condition)
+        elif is_character_range_syntax(condition):
+            if_char_logic = handle_character_range_syntax(condition)
+        elif is_exclamation_syntax(condition):
+            if_char_logic = handle_exclamation_syntax(condition)
+        elif is_or_syntax(condition):
+            if_char_logic = handle_or_syntax(condition)
         else:
-            raise ValueError(f'The condition {if_char} is invalid')
+            raise ValueError(f'The condition {condition} is invalid')
+
         self.transitions[from_st].append(Transition(if_char_logic=if_char_logic, actions=action_list, to_st=to_st))

@@ -20,7 +20,7 @@ Each token object produced by the generated lexer contains:
 
 ## Getting Started
 
-```py
+```python
 from silene.analyzer import Analyzer
 from silene.codegenerators.python_generator import generate_python_code
 
@@ -31,24 +31,24 @@ lexer = Analyzer(num_of_states=2)
 # if the from state is the same as the to state, it loops back
 
 # if character is space or tab
-lexer.add_transition(from_st=0, to_st=0, if_char=[' ', '\t'])
+lexer.add_transition(from_st=0, to_st=0, condition=[' ', '\t'])
 # if character is +
 # the action is begin token then append character then emit PLUS token
-lexer.add_transition(from_st=0, to_st=0, if_char='+', actions=['B', 'A', 'E:PLUS'])
+lexer.add_transition(from_st=0, to_st=0, condition='+', actions=['B', 'A', 'E:PLUS'])
 # if character is a digit inclusive between 0 and 9
 # the action is begin token then append character
-lexer.add_transition(from_st=0, to_st=1, if_char='0-9', actions=['B', 'A'])
+lexer.add_transition(from_st=0, to_st=1, condition='0-9', actions=['B', 'A'])
 # if character is a digit inclusive between 0 and 9
 # the action is append character
-lexer.add_transition(from_st=1, to_st=1, if_char='0-9', actions=['A'])
+lexer.add_transition(from_st=1, to_st=1, condition='0-9', actions=['A'])
 # if character is not a digit inclusive between 0 and 9
 # the action is emit NUM token then feed the character to the next state (0)
-lexer.add_transition(from_st=1, to_st=0, if_char='else', actions=['E:NUM', 'F'])
+lexer.add_transition(from_st=1, to_st=0, condition='else', actions=['E:NUM', 'F'])
 
 print(generate_python_code(lexer))
 ```
 
-## If Character Syntax
+## Condition Syntax
 
 * `'!'` : if character is !
 * `'!c'` : if character is not c
