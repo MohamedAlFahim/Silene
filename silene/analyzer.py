@@ -17,6 +17,9 @@ class Action(typing.NamedTuple):
     action_type: ActionType
     argument: str = ''
 
+    def __repr__(self):
+        return f'{self.action_type}' if (not self.argument) else f"{self.action_type}('{self.argument}')"
+
 
 class ConditionRule:
     pass
@@ -26,10 +29,16 @@ class NotRule(ConditionRule, typing.NamedTuple):
     # i.e. '!A-Z'
     rule: ConditionRule
 
+    def __repr__(self):
+        return f'!{self.rule}'
+
 
 class OrRule(ConditionRule, typing.NamedTuple):
     # [a, b, c] translates to a or b or c
     values: typing.List[ConditionRule]
+
+    def __repr__(self):
+        return f'( {" | ".join([each_value.__repr__() for each_value in self.values])} )'
 
 
 class CharacterRangeRule(ConditionRule, typing.NamedTuple):
@@ -37,14 +46,28 @@ class CharacterRangeRule(ConditionRule, typing.NamedTuple):
     start_char: str
     end_char: str
 
+    def __repr__(self):
+        return f"({self.start_char}-{self.end_char})"
+
 
 class SpecificCharacterRule(ConditionRule, typing.NamedTuple):
     char: str
+
+    def __repr__(self):
+        if self.char == '\n':
+            return r"'\n'"
+        elif self.char == '\t':
+            return r"'\t'"
+        else:
+            return f"'{self.char}'"
 
 
 class ElseRule(ConditionRule):
     def __init__(self):
         pass
+
+    def __repr__(self):
+        return '(else)'
 
 
 # noinspection PyPep8Naming
@@ -54,9 +77,12 @@ def NeitherRule(values: typing.List[ConditionRule]):
 
 
 class Transition(typing.NamedTuple):
-    if_char_logic: ConditionRule
+    condition: ConditionRule
     actions: typing.List[Action]
     to_st: int
+
+    def __repr__(self):
+        return f'Transition(condition: {self.condition}, actions: {self.actions}, to_st: {self.to_st})'
 
 
 # SYNTAX DETECTORS
@@ -141,7 +167,7 @@ class Analyzer:
         self.transitions = [[] for _ in range(num_of_states)]
 
     def add_transition(self, *, from_st: int, to_st: int,
-                       condition: typing.Union[str, typing.Tuple[str], typing.List[str]],
+                       condition: typing.Union[str, typing.Tuple[str, ...], typing.List[str]],
                        actions: typing.Optional[typing.List[str]] = None) -> None:
         """
         Adds a transition from one state to either another state or the same state. The transition occurs if the
@@ -154,7 +180,7 @@ class Analyzer:
         """
         actions: typing.List[str] = actions or []
         max_possible_state_num = self.num_of_states - 1
-        action_list: typing.List[Action] = []
+        transition_actions: typing.List[Action] = []
 
         # Range check from_st state number and to_st state number.
         if (from_st < 0) or (from_st > max_possible_state_num):
@@ -166,30 +192,33 @@ class Analyzer:
 
         for each_action in actions:
             if each_action == 'A':
-                action_list.append(Action(ActionType.APPEND))
+                transition_actions.append(Action(ActionType.APPEND))
             elif each_action == 'B':
-                action_list.append(Action(ActionType.BEGIN))
+                transition_actions.append(Action(ActionType.BEGIN))
             elif each_action == 'F':
-                action_list.append(Action(ActionType.FEED))
+                transition_actions.append(Action(ActionType.FEED))
             elif each_action.startswith('E:'):
-                action_list.append(Action(ActionType.EMIT, each_action[2:]))
+                transition_actions.append(Action(ActionType.EMIT, each_action[2:]))
             elif each_action.startswith('R:'):
-                action_list.append(Action(ActionType.RAISE, each_action[2:]))
+                transition_actions.append(Action(ActionType.RAISE, each_action[2:]))
             else:
                 raise ValueError(f'The action {each_action} is invalid')
 
-        if_char_logic: ConditionRule
+        transition_condition: ConditionRule
         if condition == 'else':
-            if_char_logic = ElseRule()
+            transition_condition = ElseRule()
         elif is_specific_character_syntax(condition):
-            if_char_logic = handle_specific_character_syntax(condition)
+            transition_condition = handle_specific_character_syntax(condition)
         elif is_character_range_syntax(condition):
-            if_char_logic = handle_character_range_syntax(condition)
+            transition_condition = handle_character_range_syntax(condition)
         elif is_exclamation_syntax(condition):
-            if_char_logic = handle_exclamation_syntax(condition)
+            transition_condition = handle_exclamation_syntax(condition)
         elif is_or_syntax(condition):
-            if_char_logic = handle_or_syntax(condition)
+            transition_condition = handle_or_syntax(condition)
+        elif is_neither_syntax(condition):
+            transition_condition = handle_neither_syntax(condition)
         else:
             raise ValueError(f'The condition {condition} is invalid')
 
-        self.transitions[from_st].append(Transition(if_char_logic=if_char_logic, actions=action_list, to_st=to_st))
+        self.transitions[from_st].append(Transition(condition=transition_condition, actions=transition_actions,
+                                                    to_st=to_st))
