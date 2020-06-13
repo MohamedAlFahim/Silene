@@ -142,9 +142,15 @@ def handle_or_syntax(items: typing.List[str]):
 
 
 def handle_neither_syntax(items: typing.List[str]):
-    return NeitherRule(sub_rules=[(handle_specific_character_syntax(each_item) if
-                                   is_specific_character_syntax(each_item) else
-                                   handle_character_range_syntax(each_item)) for each_item in items])
+    sub_rules = []
+    for each_item in items:
+        if is_specific_character_syntax(each_item):
+            sub_rules.append(handle_specific_character_syntax(each_item))
+        elif is_character_range_syntax(each_item):
+            sub_rules.append(handle_character_range_syntax(each_item))
+        else:
+            raise ValueError(f'The condition {repr(each_item)} is invalid in the context of a NeitherRule')
+    return NeitherRule(sub_rules=sub_rules)
 
 
 class Analyzer:
