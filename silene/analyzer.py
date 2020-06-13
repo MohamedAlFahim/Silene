@@ -59,6 +59,42 @@ class Transition(typing.NamedTuple):
     to_st: int
 
 
+# SYNTAX DETECTORS
+
+
+def is_specific_character_syntax(text: str):
+    # i.e. 'c'
+    return isinstance(text, str) and (len(text) == 1)
+
+
+def is_character_range_syntax(text: str):
+    # i.e. 'a-z' and '0-9'
+    return isinstance(text, str) and (len(text) == 3) and (text[1] == '-')
+
+
+def is_exclamation_syntax(text: str):
+    # i.e. '!c' and '!0-9'
+    return isinstance(text, str) and (len(text) > 1) and text.startswith('!')
+
+
+# SYNTAX HANDLERS
+
+
+def handle_specific_character_syntax(text: str):
+    return SpecificCharacterRule(char=text)
+
+
+def handle_character_range_syntax(text: str):
+    return CharacterRangeRule(start_char=text[0], end_char=text[2])
+
+
+def handle_exclamation_syntax(text: str):
+    without_exclamation = text[1:]
+    return NotRule(rule=(handle_specific_character_syntax(without_exclamation) if
+                         is_specific_character_syntax(without_exclamation) else
+                         handle_character_range_syntax(without_exclamation)))
+
+
 class Analyzer:
     """
     Stores transition logic. Calling a code-generating function on it will generate the code necessary for a lexer.
@@ -75,12 +111,6 @@ class Analyzer:
         # An index represents a 'from_st' state, and the value at that index is a list of transitions that originate
         # from that 'from_st' state.
         self.transitions = [[] for _ in range(num_of_states)]
-
-    # def append_transition_from_state(self, *, if_char_logic: IfCharLogic,
-    #                                  actions: typing.List[Action], to_st: int,
-    #                                  from_st: int):
-    #     self.transitions[from_st].append(Transition(
-    #         if_char_logic=if_char_logic, actions=actions, to_st=to_st))
 
     def add_transition(self, *, from_st: int, to_st: int,
                        if_char: typing.Union[str, typing.Tuple[str], typing.List[str]],
@@ -119,7 +149,15 @@ class Analyzer:
                 action_list.append(Action(ActionType.RAISE, each_action[2:]))
             else:
                 raise ValueError(f'The action {each_action} is invalid')
-        # if if_char == 'else':
-        #     self.append_transition_from_state(
-        #         if_char_logic=ElseRule(), actions=action_list, to_st=to_st,
-        #         from_st=from_st)
+        if_char_logic: IfCharLogic
+        if if_char == 'else':
+            if_char_logic = ElseRule()
+        elif is_specific_character_syntax(if_char):
+            if_char_logic = handle_specific_character_syntax(if_char)
+        elif is_character_range_syntax(if_char):
+            if_char_logic = handle_character_range_syntax(if_char)
+        elif is_exclamation_syntax(if_char):
+            if_char_logic = handle_exclamation_syntax(if_char)
+        else:
+            raise ValueError(f'The condition {if_char} is invalid')
+        self.transitions[from_st].append(Transition(if_char_logic=if_char_logic, actions=action_list, to_st=to_st))
