@@ -1,5 +1,4 @@
 from enum import Enum, auto
-
 import typing
 
 
@@ -226,3 +225,6 @@ class Analyzer:
 
         self.transitions[from_st].append(Transition(condition=transition_condition, actions=transition_actions,
                                                     to_st=to_st))
+
+    def check_for_unused_states(self):
+        pass

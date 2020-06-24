@@ -9,7 +9,13 @@
 ---
 
 A tool for creating programming language lexers based on the finite state
-machine model, that follow character-by-character rules.
+machine model, that follow character-by-character rules. It can verify, at compile-time:
+
+- whether a state is not used
+- whether an out-of-range state is referenced
+- whether a set of actions is valid
+
+The lexer code it generates is very readable, and could almost look like it was written by a human.
 
 Each token object produced by the generated lexer contains:
 
@@ -50,13 +56,13 @@ print(generate_python_code(lexer))
 
 ## Condition Syntax
 
-* `'!'` : if character is !
-* `'!c'` : if character is not c
-* `'!0-9'` : if character is not a digit inclusive between 0 and 9
-* `'else'` : if none of the other conditions are true
-* `['0-9', 'A-Z']` : if character is a digit inclusive between 0 and 9, or a capital letter inclusive between A and Z
-* `('0-9', 'A-Z')` : if character is neither a digit inclusive between 0 and 9, nor a capital letter inclusive between A and Z
-* `'else'` : if the conditions for all other transitions with the same `from_st` state are false
+- `'!'` : if character is !
+- `'!c'` : if character is not c
+- `'!0-9'` : if character is not a digit inclusive between 0 and 9
+- `'else'` : if none of the other conditions are true
+- `['0-9', 'A-Z']` : if character is a digit inclusive between 0 and 9, or a capital letter inclusive between A and Z
+- `('0-9', 'A-Z')` : if character is neither a digit inclusive between 0 and 9, nor a capital letter inclusive between A and Z
+- `'else'` : if the conditions for all other transitions with the same `from_st` state are false
 
 ## Actions
 
@@ -65,3 +71,12 @@ print(generate_python_code(lexer))
 - **Emit (E:TYPE):** Marks the end of a token in general to be the current column number, line number, and position. In addition, emits a token of the specified type.
 - **Feed (F):** Feeds the character to the `to_st` state.
 - **Raise error (R:MESSAGE):** Raise a lexer error with the message `MESSAGE`.
+
+### Valid Action Sets
+
+- `['B', 'A']` : Begin token then append this character to it.
+- `['B', 'A', 'E:TYPE']` : Begin token, append this character to it, then emit `TYPE` token.
+- `['A']` : Append this character to the current token.
+- `['E:TYPE', 'F']` : Emit `TYPE` token then feed this character to the `to_st` state.
+- `['A', 'E:TYPE']` : Append this character to the current token then emit `TYPE` token.
+- `['E:TYPE', 'B', 'A']` : Emit `TYPE` token, begin a new token, then append this character to it.
