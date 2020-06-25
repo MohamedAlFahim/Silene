@@ -1,5 +1,6 @@
 from enum import Enum, auto
 import typing
+import warnings
 
 
 class ActionType(Enum):
@@ -152,14 +153,14 @@ def handle_neither_syntax(items: typing.List[str]):
     return NeitherRule(sub_rules=sub_rules)
 
 
-class Analyzer:
+class LexerModel:
     """
-    Stores transition logic. Calling a code-generating function on it will generate the code necessary for a lexer.
+    Stores transition logic. Calling a code-generating function on it will generate the actual lexer code.
     """
 
     def __init__(self, *, num_of_states: int):
         """
-        Creates an Analyzer with the specified number of states.
+        Creates a LexerModel with the specified number of states.
 
         :param num_of_states: The number of states the lexer has.
         """
@@ -194,18 +195,20 @@ class Analyzer:
                              f'than {max_possible_state_num}')
 
         for each_action in actions:
+            action: Action
             if each_action == 'A':
-                transition_actions.append(Action(ActionType.APPEND))
+                action = Action(ActionType.APPEND)
             elif each_action == 'B':
-                transition_actions.append(Action(ActionType.BEGIN))
+                action = Action(ActionType.BEGIN)
             elif each_action == 'F':
-                transition_actions.append(Action(ActionType.FEED))
+                action = Action(ActionType.FEED)
             elif each_action.startswith('E:'):
-                transition_actions.append(Action(ActionType.EMIT, each_action[2:]))
+                action = Action(ActionType.EMIT, each_action[2:])
             elif each_action.startswith('R:'):
-                transition_actions.append(Action(ActionType.RAISE, each_action[2:]))
+                action = Action(ActionType.RAISE, each_action[2:])
             else:
                 raise ValueError(f'The action {repr(each_action)} is invalid')
+            transition_actions.append(action)
 
         transition_condition: ConditionRule
         if condition == 'else':

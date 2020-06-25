@@ -9,13 +9,13 @@
 ---
 
 A tool for creating programming language lexers based on the finite state
-machine model, that follow character-by-character rules. It can verify, at compile-time:
+machine model, that follow character-by-character rules. It can check, at compile-time:
 
-- whether a state is not used
+- whether a state is not referenced
 - whether an out-of-range state is referenced
-- whether a set of actions is valid
+- whether a set of actions is invalid
 
-The lexer code it generates is very readable, and could almost look like it was written by a human.
+The lexer code it generates is very readable, to the point of almost looking like it was written by a human.
 
 Each token object produced by the generated lexer contains:
 
@@ -27,12 +27,12 @@ Each token object produced by the generated lexer contains:
 ## Getting Started
 
 ```python
-from silene.analyzer import Analyzer
+from silene.lexer_model import LexerModel
 from silene.codegenerators.python_generator import generate_python_code
 
 
 # The possible states are 0 and 1
-lexer = Analyzer(num_of_states=2)
+lexer = LexerModel(num_of_states=2)
 
 # if the from state is the same as the to state, it loops back
 
