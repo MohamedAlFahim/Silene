@@ -175,12 +175,12 @@ class LexerModel:
                        actions: typing.Optional[typing.List[str]] = None) -> None:
         """
         Adds a transition from one state to either another state or the same state. The transition occurs if the
-        specified condition is satisfied. In addition, a set of actions will be taken.
+        specified condition is satisfied. In addition, a list of actions will be executed upon the transition.
 
         :param from_st: The starting state of the transition.
         :param to_st: The ending state of the transition.
         :param condition: The condition that must be satisfied.
-        :param actions: The set of actions to take.
+        :param actions: The list of actions to execute.
         """
         actions: typing.List[str] = actions or []
         max_possible_state_num = self.num_of_states - 1

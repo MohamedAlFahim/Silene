@@ -8,12 +8,13 @@
 
 ---
 
-A tool for creating programming language lexers based on the finite state
-machine model, that follow character-by-character rules. It can check, at compile-time:
+A tool for creating programming language lexers based on the finite state machine model, that follow character-by-character rules.
 
-- whether a state is not referenced
-- whether an out-of-range state is referenced
-- whether a set of actions is invalid
+It can check, at compile-time, for:
+
+- unreferenced/unused states
+- references to out-of-range states
+- invalid action lists
 
 The lexer code it generates is very readable, to the point of almost looking like it was written by a human.
 
@@ -72,7 +73,7 @@ print(generate_python_code(lexer))
 - **Feed (F):** Feeds the character to the `to_st` state.
 - **Raise error (R:MESSAGE):** Raise a lexer error with the message `MESSAGE`.
 
-### Valid Action Sets
+### Valid Action Lists
 
 - `['B', 'A']` : Begin token then append this character to it.
 - `['B', 'A', 'E:TYPE']` : Begin token, append this character to it, then emit `TYPE` token.
